@@ -4,8 +4,6 @@
             [fruchterman-reingold.algorithm :as al]
             [fruchterman-reingold.graphs :as g]))
 
-(def seed -173247684)
-
 (def W 600)
 (def H 600)
 (def line-weight 3)
@@ -14,9 +12,9 @@
 (defn setup []
   (q/ellipse-mode :center)
   (q/frame-rate 60)
-  {:states (al/fruchterman-reingold (g/random seed 20 0.15) (- W 30) (- H 30))
+  {:states (al/fruchterman-reingold g/Durer (- W 30) (- H 30))
    ;; We need to make with and height a little smaller since in the actual drawing
-   ;; Points have area i.e are not really points
+   ;; points have area i.e are not really points
    :i -50})
 
 (defn update-state
