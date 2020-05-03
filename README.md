@@ -17,6 +17,7 @@ are some examples of starting positions (random) and resulting ones:
 
 #### [Dürer Graph](https://en.wikipedia.org/wiki/D%C3%BCrer_graph)
 ![Starting Position](images/DurerStart.png) ![Result](images/DurerResult.png)
+![Gif](images/Durer.gif)
 
 #### [K7](https://en.wikipedia.org/wiki/Complete_graph)
 ![Starting Position](images/K7Start.png) ![Result](images/K7Result.png)
