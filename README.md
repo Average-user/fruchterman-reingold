@@ -28,6 +28,8 @@ are some examples of starting positions (random) and resulting ones:
 
 #### Random Graph of 10 vertices. [Generated with p=0.41, seed=-957442595]
 ![Starting Position](images/Rand10Start.png) ![Result](images/Rand10Result.png)
+![Gif](images/Rand10.gif)
 
 #### Random Graph of 20 vertices. [Generated with p=0.15, seed=-173247684]
 ![Starting Position](images/Rand20Start.png) ![Result](images/Rand20Result.png)
+![Gif](images/Rand20.gif)
