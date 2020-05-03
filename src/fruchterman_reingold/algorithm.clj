@@ -33,9 +33,9 @@
   "The state keeps record of needed information, but actually
   the only data that is not constant during an execution is
   :t and :pos"
-  [G w h]
+  [G w h C]
   (let [area (* w h)
-        C    0.7                                        ; you should play with this
+        C    C                                      ; you should play with this
         k    (* C (Math/sqrt (/ area (count (:V G)))))]
     {:G   G
      :W   w
@@ -96,5 +96,5 @@
         (update :pos (partial calculate-new-positions G W H t disp'))
         (update :t cool))))
 
-(defn fruchterman-reingold [G W H]
-  (iterate iteration (initial-state G W H)))
+(defn fruchterman-reingold [G W H C]
+  (iterate iteration (initial-state G W H C)))

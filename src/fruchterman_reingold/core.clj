@@ -12,7 +12,7 @@
 (defn setup []
   (q/ellipse-mode :center)
   (q/frame-rate 60)
-  {:states (al/fruchterman-reingold g/Durer (- W 30) (- H 30))
+  {:states (al/fruchterman-reingold g/Durer (- W 30) (- H 30) 0.7)
    ;; We need to make with and height a little smaller since in the actual drawing
    ;; points have area i.e are not really points
    :i -50})
