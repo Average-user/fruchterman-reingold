@@ -34,7 +34,7 @@
     (q/stroke-weight line-weight)
     (q/stroke 245 0 0)
     (doall (map (fn [e] (let [[a b] (vec e)]
-                          (apply q/line (map #(al/vadd [15 15] %) [(pos a) (pos b)]))))
+                          (apply q/line (map #(mapv + [15 15] %) [(pos a) (pos b)]))))
                 (:E G)))
     (q/fill 22)
     (q/stroke-weight line-weight)
@@ -42,11 +42,12 @@
     (doall (map (fn [[x y]] (q/ellipse (+ x 15) (+ y 15) node-radius node-radius))
                 (vals pos)))))
 
-(q/defsketch fruchterman-reingold
-  :title "Fruchterman-Reingold Algorithm"
-  :size [W H]
-  :setup setup
-  :update update-state
-  :draw draw-state
-  :features [:keep-on-top]
-  :middleware [m/fun-mode])
+(defn -main []
+  (q/defsketch fruchterman-reingold
+    :title "Fruchterman-Reingold Algorithm"
+    :size [W H]
+    :setup setup
+    :update update-state
+    :draw draw-state
+    :features [:keep-on-top]
+    :middleware [m/fun-mode]))
