@@ -7,27 +7,18 @@
 ;; Look at some examples at graphs.clj
 
 
-;; Some simple vector operations
-(defn vadd [v u]
-  (mapv + v u))
+;; Some simple vector operations to make the rest of the code more expressive
+(defn- vadd [v u] (mapv + v u))
+(defn- vmul [a v] (mapv #(* a %) v))
+(defn- vdiv [v a] (vmul (/ 1 a) v))
+(defn- norm [v] (Math/sqrt (reduce + (map #(Math/pow % 2) v))))
 
-(defn vmul [a v]
-  (mapv #(* a %) v))
-
-(defn norm [v]
-  (Math/sqrt (reduce + (map #(Math/pow % 2) v))))
-
-(defn normalize [v]
-  (vmul (/ 1 (norm v)) v))
-
-;; Algorithm itself
-(defn initialize-graph
+;; ================= Algorithm itself =================
+(defn- initialize-graph
   "Initialize vertices at random positions, returns a hashmap
   with vertices as keys and coordinates (vectors) as values"
   [G w h]
-  (let [randx (fn [] (rand w))
-        randy (fn [] (rand h))]
-    (into {} (map (fn [v] [v [(randx) (randy)]]) (:V G)))))
+  (into {} (map (fn [v] [v [(rand w) (rand h)]]) (:V G))))
 
 (defn initial-state
   "The state keeps record of needed information, but actually
@@ -35,66 +26,64 @@
   :t and :pos"
   [G w h C]
   (let [area (* w h)
-        C    C                                      ; you should play with this
         k    (* C (Math/sqrt (/ area (count (:V G)))))]
-    {:G   G
-     :W   w
-     :H   h
-     :pos (initialize-graph G w h)
-     :t   (/ w 10)
-     :fr  (fn [x] (/ (Math/pow k 2) x))
-     :fa  (fn [x] (/ (Math/pow x 2) k))
+    {:G    (update G :E #(mapcat (fn [s] (let [[x y] (vec s)] [[x y] [y x]])) %))
+     ;; The algorithm uses ordered pairs. We make the change internal to ensure
+     ;; the input to be tought as undirected graph
+     :W    w
+     :H    h
+     :pos  (initialize-graph G w h)
+     :t    (/ w 10)
+     :fr   (fn [x] (/ (Math/pow k 2) x))
+     :fa   (fn [x] (/ (Math/pow x 2) k))
      :cool (fn [t] (* 0.99 t))}))
 
-(defn get-repulsive-disp
+(defn- get-repulsive-disp
   "Calculate the total repulsive vector force on a single vertex v"
-  [G pos fr v]
-  (reduce (fn [disp u] (let [dif (vadd (pos v) (vmul -1 (pos u)))
-                             d   (norm dif)]
-                         (vadd disp (vmul (fr d) (normalize dif)))))
-          [0 0]
-          (s/difference (:V G) #{v})))
+  [V pos fr v]
+  (let [f (fn [dispv u] (let [dif (vadd (pos v) (vmul -1 (pos u)))
+                              d   (norm dif)]
+                          (vadd dispv (vmul (fr d) (vdiv dif d)))))]
+    (reduce f [0 0] (s/difference V #{v}))))
 
-(defn calculate-repulsive-forces
+(defn- calculate-repulsive-forces
   "Creates disp hash-map of vertex to vector displacement"
-  [G pos fr]
-  (into {} (map (fn [v]  [v (get-repulsive-disp G pos fr v)]) (:V G))))
+  [V pos fr]
+  (let [f (fn [disp v] (assoc disp v (get-repulsive-disp V pos fr v)))]
+    (reduce f {} V)))
 
-(defn calculate-attractive-forces
-  "Updates displacements vectors wiht the attractive forces
-  of connected vertices"
-  [G pos fa disp]
-  (reduce (fn [disp [v u]]
-            (let [dif    (vadd (pos v) (vmul -1 (pos u)))
-                  d      (norm dif)
-                  change (vmul (fa d) (normalize dif))]
-              (-> disp (update v #(vadd % (vmul -1 change)))
-                       (update u #(vadd % change)))))
-          disp
-          (mapcat (fn [s] (let [[x y] (vec s)] [[x y] [y x]])) (:E G))))
+(defn- calculate-attractive-forces
+  "Updates displacements vectors wiht attractive forces
+  of connected pairs. (Edges)"
+  [E pos fa disp]
+  (let [f (fn [disp [v u]] (let [dif    (vadd (pos v) (vmul -1 (pos u)))
+                                 d      (norm dif)
+                                 change (vmul (fa d) (vdiv dif d))]
+                             (-> disp (update v #(vadd % (vmul -1 change)))
+                                      (update u #(vadd % change)))))]
+    (reduce f disp E)))
 
-(defn calculate-new-positions
+(defn- calculate-new-positions
   "Calculates new position with the displacement vectors, but also
-  respecting with and height of screen, and temperature 't'"
-  [G W H t disp pos]
-  (->> pos
-       (map (fn [[v p]] (let [dis     (disp v)
-                              normd   (normalize dis)
-                              [x' y'] (vadd p (vmul (min (norm dis) t) normd))]
-                          [v [(min W (max 0 x'))
-                              (min H (max 0 y'))]])))
-       (into {})))
+  respecting width and height of screen, and temperature 't'"
+  [W H t disp pos]
+  (let [f (fn [pos v p]
+            (let [dis     (disp v)
+                  d       (norm dis)
+                  [x' y'] (vadd p (vmul (min d t) (vdiv dis d)))]
+              (assoc pos v [(min W (max 0 x')) (min H (max 0 y'))])))]
+    (reduce-kv f {} pos)))
 
-(defn iteration
+(defn fruchterman-reingold-step
   "Basically one iteration of the algorithm described by Fruchterman and Reingold,
   the only difference is that here the origin (0,0) is thought in the upper
   left corner and not in the middle"
   [{:keys [G pos fr fa W H cool t] :as state}]
-  (let [disp (calculate-repulsive-forces G pos fr)
-        disp' (calculate-attractive-forces G pos fa disp)]
+  (let [disp (->> (calculate-repulsive-forces (:V G) pos fr)
+                  (calculate-attractive-forces (:E G) pos fa))]
     (-> state
-        (update :pos (partial calculate-new-positions G W H t disp'))
+        (update :pos (partial calculate-new-positions W H t disp))
         (update :t cool))))
 
 (defn fruchterman-reingold [G W H C]
-  (iterate iteration (initial-state G W H C)))
+  (iterate fruchterman-reingold-step (initial-state G W H C)))
